@@ -3,15 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jogo da Velha vs CPU Imbatível</title>
+  <title>Bug_vs_Fix</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
+    /* Seu estilo original mantido */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     body {
       height: 100vh;
       background: linear-gradient(135deg, #667eea, #764ba2);
@@ -20,21 +15,9 @@
       align-items: center;
       color: #fff;
     }
-
-    .game-container {
-      text-align: center;
-    }
-
-    h1 {
-      margin-bottom: 10px;
-      font-size: 2rem;
-    }
-
-    .scoreboard {
-      margin-bottom: 15px;
-      font-size: 1.2rem;
-    }
-
+    .game-container { text-align: center; }
+    h1 { margin-bottom: 10px; font-size: 2rem; }
+    .scoreboard { margin-bottom: 15px; font-size: 1.2rem; }
     .board {
       display: grid;
       grid-template-columns: repeat(3, 100px);
@@ -42,7 +25,6 @@
       gap: 10px;
       justify-content: center;
     }
-
     .cell {
       width: 100px;
       height: 100px;
@@ -57,39 +39,27 @@
       user-select: none;
       animation: fadeIn 0.4s ease;
     }
-
-    .cell:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
+    .cell:hover { background: rgba(255, 255, 255, 0.2); }
     .cell.winner {
       background: #00ffcc55;
       animation: pulse 1s infinite;
     }
-
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: scale(0.9); }
       to { opacity: 1; transform: scale(1); }
     }
-
-    .status {
-      margin: 20px 0;
-      font-size: 1.2rem;
-    }
-
+    .status { margin: 20px 0; font-size: 1.2rem; }
     .buttons {
       display: flex;
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
     }
-
     .btn {
       padding: 10px 20px;
       background: #fff;
@@ -99,32 +69,26 @@
       cursor: pointer;
       transition: 0.3s;
     }
-
-    .btn:hover {
-      background: #f1f1f1;
-    }
-
-    .mode {
-      margin-top: 10px;
-      font-size: 0.95rem;
-      opacity: 0.9;
-    }
+    .btn:hover { background: #f1f1f1; }
+    .mode, .difficulty { margin-top: 10px; font-size: 0.95rem; opacity: 0.9; }
   </style>
 </head>
 <body>
   <div class="game-container">
-    <h1>Jogo da Velha</h1>
+    <h1>Bug vs Fix</h1>
     <div class="scoreboard">
-      Placar — X: <span id="scoreX">0</span> | O: <span id="scoreO">0</span>
+      Placar — 👩🏻‍💻: <span id="scoreX">0</span> | 🐞: <span id="scoreO">0</span>
     </div>
     <div class="board" id="board"></div>
     <div class="status" id="status">Vez de: X</div>
     <div class="buttons">
       <button class="btn" onclick="resetGame()">Reiniciar Jogo</button>
       <button class="btn" onclick="resetScores()">Resetar Placar</button>
-      <button class="btn" onclick="toggleMode(event)">Modo: 2 Jogadores</button>
+      <button class="btn" onclick="toggleMode(event)">Modo: VS Player</button>
+      <button class="btn" onclick="toggleDifficulty()">Dificuldade: <span id="difficultyLevel">Impossível</span></button>
     </div>
-    <div class="mode" id="modeInfo">Modo atual: 2 jogadores</div>
+    <div class="mode" id="modeInfo">Modo atual: VS Player</div>
+    <div class="difficulty">Dificuldade atual da CPU: <span id="difficultyInfo">Impossível</span></div>
   </div>
 
   <script>
@@ -133,12 +97,16 @@
     const scoreXDisplay = document.getElementById('scoreX');
     const scoreODisplay = document.getElementById('scoreO');
     const modeInfo = document.getElementById('modeInfo');
+    const difficultyInfo = document.getElementById('difficultyInfo');
+    const difficultyLevel = document.getElementById('difficultyLevel');
+
     let currentPlayer = 'X';
     let gameOver = false;
     let cells = [];
     let score = { X: 0, O: 0 };
     let vsCPU = false;
-
+    let cpuDifficulty = 'hard'; // 'easy', 'medium', 'hard'
+    
     function createBoard() {
       board.innerHTML = '';
       cells = [];
@@ -178,11 +146,44 @@
       statusText.textContent = `Vez de: ${currentPlayer}`;
 
       if (vsCPU && currentPlayer === 'O' && !gameOver) {
-        setTimeout(cpuMove, 300);
+        setTimeout(cpuMove, 400);
       }
     }
 
     function cpuMove() {
+      if (cpuDifficulty === 'easy') {
+        cpuEasyMove();
+      } else if (cpuDifficulty === 'medium') {
+        cpuMediumMove();
+      } else {
+        cpuHardMove(); // imbatível
+      }
+    }
+
+    function cpuEasyMove() {
+      const emptyIndices = cells
+        .map((cell, i) => (cell.textContent === '' ? i : null))
+        .filter(i => i !== null);
+      const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      if (randomIndex !== undefined) cells[randomIndex].click();
+    }
+
+    function cpuMediumMove() {
+      // Tenta ganhar ou bloquear, senão joga aleatório
+      const boardState = cells.map(cell => cell.textContent || '');
+      const tryToWin = getBestMove(boardState, 'O');
+      const tryToBlock = getBestMove(boardState, 'X');
+
+      const move = Math.random() < 0.5 ? tryToWin : tryToBlock;
+
+      if (move !== null) {
+        cells[move].click();
+      } else {
+        cpuEasyMove();
+      }
+    }
+
+    function cpuHardMove() {
       const boardState = cells.map(cell => cell.textContent || '');
       const bestMove = getBestMove(boardState, 'O');
       if (bestMove !== null) cells[bestMove].click();
@@ -200,7 +201,6 @@
       function minimax(newBoard, isMaximizing) {
         const result = checkWinnerArray(newBoard);
         if (result) return scores[result];
-
         if (newBoard.every(cell => cell !== '')) return scores['draw'];
 
         let bestScore = isMaximizing ? -Infinity : Infinity;
@@ -210,7 +210,9 @@
             newBoard[i] = isMaximizing ? player : opponent;
             let score = minimax(newBoard, !isMaximizing);
             newBoard[i] = '';
-            bestScore = isMaximizing ? Math.max(score, bestScore) : Math.min(score, bestScore);
+            bestScore = isMaximizing
+              ? Math.max(score, bestScore)
+              : Math.min(score, bestScore);
           }
         }
 
@@ -242,9 +244,7 @@
         [0,4,8],[2,4,6]
       ];
       for (const [a,b,c] of wins) {
-        if (arr[a] && arr[a] === arr[b] && arr[b] === arr[c]) {
-          return arr[a];
-        }
+        if (arr[a] && arr[a] === arr[b] && arr[b] === arr[c]) return arr[a];
       }
       return null;
     }
@@ -289,9 +289,18 @@
     function toggleMode(e) {
       vsCPU = !vsCPU;
       resetGame();
-      const modeText = vsCPU ? "Jogador vs CPU" : "2 jogadores";
+      const modeText = vsCPU ? "Jogador vs CPU" : "VS Player";
       modeInfo.textContent = `Modo atual: ${modeText}`;
       e.target.textContent = `Modo: ${modeText}`;
+    }
+
+    function toggleDifficulty() {
+      const levels = ['easy', 'medium', 'hard'];
+      const labels = { easy: 'Fácil', medium: 'Médio', hard: 'Impossível' };
+      const index = levels.indexOf(cpuDifficulty);
+      cpuDifficulty = levels[(index + 1) % levels.length];
+      difficultyInfo.textContent = labels[cpuDifficulty];
+      difficultyLevel.textContent = labels[cpuDifficulty];
     }
 
     createBoard();
