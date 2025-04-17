@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bugs - ToDo</title>
+  <title>Jogo da Velha vs CPU</title>
   <style>
     * {
       margin: 0;
@@ -14,47 +14,85 @@
 
     body {
       height: 100vh;
-      background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+      background: linear-gradient(135deg, #667eea, #764ba2);
       display: flex;
       justify-content: center;
       align-items: center;
+      color: #fff;
     }
 
-    .container {
-      background: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      padding: 30px;
-      width: 350px;
+    .game-container {
+      text-align: center;
     }
 
     h1 {
-      text-align: center;
-      color: #fff;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+      font-size: 2rem;
     }
 
-    .input-section {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
+    .scoreboard {
+      margin-bottom: 15px;
+      font-size: 1.2rem;
     }
 
-    input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border: none;
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
-      outline: none;
+      font-size: 2.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.3s;
+      user-select: none;
+      animation: fadeIn 0.4s ease;
     }
 
-    button {
-      padding: 10px 15px;
-      margin-left: 10px;
-      background-color: #ffffff88;
+    .cell:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .cell.winner {
+      background: #00ffcc55;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .status {
+      margin: 20px 0;
+      font-size: 1.2rem;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: #fff;
       color: #333;
       border: none;
       border-radius: 10px;
@@ -62,75 +100,195 @@
       transition: 0.3s;
     }
 
-    button:hover {
-      background-color: #fff;
+    .btn:hover {
+      background: #f1f1f1;
     }
 
-    ul {
-      list-style: none;
-      max-height: 250px;
-      overflow-y: auto;
-      padding-right: 5px;
-    }
-
-    li {
-      background-color: rgba(255, 255, 255, 0.3);
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #fff;
-    }
-
-    li.done {
-      text-decoration: line-through;
-      opacity: 0.6;
-    }
-
-    .remove-btn {
-      background: transparent;
-      border: none;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
+    .mode {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      opacity: 0.9;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Tarefas da Bugs</h1>
-    <div class="input-section">
-      <input type="text" id="taskInput" placeholder="Digite uma tarefa">
-      <button onclick="addTask()">Add</button>
+  <div class="game-container">
+    <h1>Jogo da Velha</h1>
+    <div class="scoreboard">
+      Placar — X: <span id="scoreX">0</span> | O: <span id="scoreO">0</span>
     </div>
-    <ul id="taskList"></ul>
+    <div class="board" id="board"></div>
+    <div class="status" id="status">Vez de: X</div>
+    <div class="buttons">
+      <button class="btn" onclick="resetGame()">Reiniciar Jogo</button>
+      <button class="btn" onclick="resetScores()">Resetar Placar</button>
+      <button class="btn" onclick="toggleMode()">Modo: 2 Jogadores</button>
+    </div>
+    <div class="mode" id="modeInfo">Modo atual: 2 jogadores</div>
   </div>
 
   <script>
-    function addTask() {
-      const input = document.getElementById('taskInput');
-      const taskText = input.value.trim();
-      if (taskText === '') return;
+    const board = document.getElementById('board');
+    const statusText = document.getElementById('status');
+    const scoreXDisplay = document.getElementById('scoreX');
+    const scoreODisplay = document.getElementById('scoreO');
+    const modeInfo = document.getElementById('modeInfo');
+    let currentPlayer = 'X';
+    let gameOver = false;
+    let cells = [];
+    let score = { X: 0, O: 0 };
+    let vsCPU = false;
 
-      const li = document.createElement('li');
-      li.textContent = taskText;
-
-      li.addEventListener('click', () => {
-        li.classList.toggle('done');
-      });
-
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = '×';
-      removeBtn.classList.add('remove-btn');
-      removeBtn.onclick = () => li.remove();
-
-      li.appendChild(removeBtn);
-      document.getElementById('taskList').appendChild(li);
-      input.value = '';
+    function createBoard() {
+      board.innerHTML = '';
+      cells = [];
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.index = i;
+        cell.addEventListener('click', handleClick);
+        board.appendChild(cell);
+        cells.push(cell);
+      }
+      statusText.textContent = `Vez de: ${currentPlayer}`;
+      gameOver = false;
     }
+
+    function handleClick(e) {
+      const cell = e.target;
+      if (cell.textContent || gameOver) return;
+
+      cell.textContent = currentPlayer;
+
+      if (checkWinner()) {
+        statusText.textContent = `Vitória de: ${currentPlayer}!`;
+        score[currentPlayer]++;
+        updateScore();
+        gameOver = true;
+        return;
+      }
+
+      if (cells.every(c => c.textContent)) {
+        statusText.textContent = 'Empate!';
+        gameOver = true;
+        return;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      statusText.textContent = `Vez de: ${currentPlayer}`;
+
+      if (vsCPU && currentPlayer === 'O' && !gameOver) {
+        setTimeout(cpuMove, 500); // CPU joga com delay
+      }
+    }
+
+    // Função do CPU com algoritmo Minimax inteligente
+    function cpuMove() {
+      const bestMove = findBestMove(cells.map(cell => cell.textContent));
+      cells[bestMove].click();
+    }
+
+    // Algoritmo Minimax para a CPU com melhor jogada
+    function findBestMove(board) {
+      let bestMove = -1;
+      let bestScore = -Infinity;
+
+      // Avalia todas as jogadas possíveis
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') {
+          board[i] = 'O'; // Simula a jogada da CPU
+          let score = minimax(board, false); // Calcula o valor da jogada
+          board[i] = ''; // Desfaz a jogada
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = i;
+          }
+        }
+      }
+
+      return bestMove;
+    }
+
+    // Algoritmo Minimax recursivo
+    function minimax(board, isMaximizing) {
+      const winner = checkWinner(board);
+      if (winner === 'O') return 10;
+      if (winner === 'X') return -10;
+      if (board.every(cell => cell !== '')) return 0; // Empate
+
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === '') {
+            board[i] = 'O'; // Joga com 'O'
+            let score = minimax(board, false);
+            board[i] = '';
+            bestScore = Math.max(score, bestScore);
+          }
+        }
+        return bestScore;
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === '') {
+            board[i] = 'X'; // Joga com 'X'
+            let score = minimax(board, true);
+            board[i] = '';
+            bestScore = Math.min(score, bestScore);
+          }
+        }
+        return bestScore;
+      }
+    }
+
+    // Verifica se alguém ganhou
+    function checkWinner() {
+      const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+
+      for (const combo of wins) {
+        const [a, b, c] = combo;
+        if (
+          cells[a].textContent &&
+          cells[a].textContent === cells[b].textContent &&
+          cells[b].textContent === cells[c].textContent
+        ) {
+          [cells[a], cells[b], cells[c]].forEach(cell => cell.classList.add('winner'));
+          return cells[a].textContent; // Retorna quem ganhou (X ou O)
+        }
+      }
+      return null; // Nenhum vencedor
+    }
+
+    function updateScore() {
+      scoreXDisplay.textContent = score.X;
+      scoreODisplay.textContent = score.O;
+    }
+
+    function resetGame() {
+      currentPlayer = 'X';
+      createBoard();
+    }
+
+    function resetScores() {
+      score = { X: 0, O: 0 };
+      updateScore();
+      resetGame();
+    }
+
+    function toggleMode() {
+      vsCPU = !vsCPU;
+      resetGame();
+      const modeText = vsCPU ? "Jogador vs CPU" : "2 jogadores";
+      modeInfo.textContent = `Modo atual: ${modeText}`;
+      event.target.textContent = `Modo: ${modeText}`;
+    }
+
+    createBoard();
   </script>
 </body>
 </html>
-

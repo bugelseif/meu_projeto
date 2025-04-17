@@ -113,7 +113,7 @@
 </head>
 <body>
   <div class="game-container">
-    <h1>Jogo da Bugs (chamei de velha kk)</h1>
+    <h1>Jogo da Velha</h1>
     <div class="scoreboard">
       Placar — X: <span id="scoreX">0</span> | O: <span id="scoreO">0</span>
     </div>
@@ -178,23 +178,61 @@
       statusText.textContent = `Vez de: ${currentPlayer}`;
 
       if (vsCPU && currentPlayer === 'O' && !gameOver) {
-        setTimeout(computerMove, 500);
+        setTimeout(cpuMove, 500); // CPU joga com delay
       }
     }
 
-    function computerMove() {
-      const emptyCells = cells.filter(c => !c.textContent);
-      if (emptyCells.length === 0) return;
-
-      const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-      choice.click(); // Simula o clique do computador
+    // Função do CPU com lógica de bloqueio e ataque
+    function cpuMove() {
+      const bestMove = findBestMove(cells.map(cell => cell.textContent));
+      cells[bestMove].click();
     }
 
+    // Função para encontrar a melhor jogada para a CPU
+    function findBestMove(board) {
+      const winningMoves = checkForWinningMoves(board, 'O');
+      if (winningMoves.length > 0) {
+        return winningMoves[0]; // Se houver jogadas vencedoras, joga nelas
+      }
+
+      const blockMoves = checkForWinningMoves(board, 'X');
+      if (blockMoves.length > 0) {
+        return blockMoves[0]; // Se o jogador estiver prestes a ganhar, bloqueia
+      }
+
+      const availableMoves = [];
+      board.forEach((cell, index) => {
+        if (cell === '') availableMoves.push(index);
+      });
+
+      return availableMoves[Math.floor(Math.random() * availableMoves.length)]; // Joga aleatoriamente nas células disponíveis
+    }
+
+    // Função para verificar se há jogadas vencedoras
+    function checkForWinningMoves(board, player) {
+      const wins = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+      const moves = [];
+
+      wins.forEach(combo => {
+        const [a, b, c] = combo;
+        if (board[a] === player && board[b] === player && board[c] === '') {
+          moves.push(c); // Adiciona a posição que a CPU ou jogador deve jogar
+        }
+      });
+
+      return moves;
+    }
+
+    // Verifica se alguém ganhou
     function checkWinner() {
       const wins = [
-        [0,1,2],[3,4,5],[6,7,8],
-        [0,3,6],[1,4,7],[2,5,8],
-        [0,4,8],[2,4,6]
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
       ];
 
       for (const combo of wins) {
@@ -205,10 +243,10 @@
           cells[b].textContent === cells[c].textContent
         ) {
           [cells[a], cells[b], cells[c]].forEach(cell => cell.classList.add('winner'));
-          return true;
+          return cells[a].textContent; // Retorna quem ganhou (X ou O)
         }
       }
-      return false;
+      return null; // Nenhum vencedor
     }
 
     function updateScore() {
