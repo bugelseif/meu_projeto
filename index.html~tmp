@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jogo da Velha vs CPU</title>
+  <title>Jogo da Velha vs CPU Imbatível</title>
   <style>
     * {
       margin: 0;
@@ -122,7 +122,7 @@
     <div class="buttons">
       <button class="btn" onclick="resetGame()">Reiniciar Jogo</button>
       <button class="btn" onclick="resetScores()">Resetar Placar</button>
-      <button class="btn" onclick="toggleMode()">Modo: 2 Jogadores</button>
+      <button class="btn" onclick="toggleMode(event)">Modo: 2 Jogadores</button>
     </div>
     <div class="mode" id="modeInfo">Modo atual: 2 jogadores</div>
   </div>
@@ -178,28 +178,53 @@
       statusText.textContent = `Vez de: ${currentPlayer}`;
 
       if (vsCPU && currentPlayer === 'O' && !gameOver) {
-        setTimeout(cpuMove, 500); // CPU joga com delay
+        setTimeout(cpuMove, 300);
       }
     }
 
-    // Função do CPU com algoritmo Minimax inteligente
     function cpuMove() {
-      const bestMove = findBestMove(cells.map(cell => cell.textContent));
-      cells[bestMove].click();
+      const boardState = cells.map(cell => cell.textContent || '');
+      const bestMove = getBestMove(boardState, 'O');
+      if (bestMove !== null) cells[bestMove].click();
     }
 
-    // Algoritmo Minimax para a CPU com melhor jogada
-    function findBestMove(board) {
-      let bestMove = -1;
+    function getBestMove(board, player) {
+      const opponent = player === 'X' ? 'O' : 'X';
+
+      const scores = {
+        X: -10,
+        O: 10,
+        draw: 0
+      };
+
+      function minimax(newBoard, isMaximizing) {
+        const result = checkWinnerArray(newBoard);
+        if (result) return scores[result];
+
+        if (newBoard.every(cell => cell !== '')) return scores['draw'];
+
+        let bestScore = isMaximizing ? -Infinity : Infinity;
+
+        for (let i = 0; i < newBoard.length; i++) {
+          if (newBoard[i] === '') {
+            newBoard[i] = isMaximizing ? player : opponent;
+            let score = minimax(newBoard, !isMaximizing);
+            newBoard[i] = '';
+            bestScore = isMaximizing ? Math.max(score, bestScore) : Math.min(score, bestScore);
+          }
+        }
+
+        return bestScore;
+      }
+
+      let bestMove = null;
       let bestScore = -Infinity;
 
-      // Avalia todas as jogadas possíveis
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < board.length; i++) {
         if (board[i] === '') {
-          board[i] = 'O'; // Simula a jogada da CPU
-          let score = minimax(board, false); // Calcula o valor da jogada
-          board[i] = ''; // Desfaz a jogada
-
+          board[i] = player;
+          let score = minimax(board, false);
+          board[i] = '';
           if (score > bestScore) {
             bestScore = score;
             bestMove = i;
@@ -210,39 +235,20 @@
       return bestMove;
     }
 
-    // Algoritmo Minimax recursivo
-    function minimax(board, isMaximizing) {
-      const winner = checkWinner(board);
-      if (winner === 'O') return 10;
-      if (winner === 'X') return -10;
-      if (board.every(cell => cell !== '')) return 0; // Empate
-
-      if (isMaximizing) {
-        let bestScore = -Infinity;
-        for (let i = 0; i < 9; i++) {
-          if (board[i] === '') {
-            board[i] = 'O'; // Joga com 'O'
-            let score = minimax(board, false);
-            board[i] = '';
-            bestScore = Math.max(score, bestScore);
-          }
+    function checkWinnerArray(arr) {
+      const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      for (const [a,b,c] of wins) {
+        if (arr[a] && arr[a] === arr[b] && arr[b] === arr[c]) {
+          return arr[a];
         }
-        return bestScore;
-      } else {
-        let bestScore = Infinity;
-        for (let i = 0; i < 9; i++) {
-          if (board[i] === '') {
-            board[i] = 'X'; // Joga com 'X'
-            let score = minimax(board, true);
-            board[i] = '';
-            bestScore = Math.min(score, bestScore);
-          }
-        }
-        return bestScore;
       }
+      return null;
     }
 
-    // Verifica se alguém ganhou
     function checkWinner() {
       const wins = [
         [0,1,2],[3,4,5],[6,7,8],
@@ -258,10 +264,10 @@
           cells[b].textContent === cells[c].textContent
         ) {
           [cells[a], cells[b], cells[c]].forEach(cell => cell.classList.add('winner'));
-          return cells[a].textContent; // Retorna quem ganhou (X ou O)
+          return cells[a].textContent;
         }
       }
-      return null; // Nenhum vencedor
+      return null;
     }
 
     function updateScore() {
@@ -280,12 +286,12 @@
       resetGame();
     }
 
-    function toggleMode() {
+    function toggleMode(e) {
       vsCPU = !vsCPU;
       resetGame();
       const modeText = vsCPU ? "Jogador vs CPU" : "2 jogadores";
       modeInfo.textContent = `Modo atual: ${modeText}`;
-      event.target.textContent = `Modo: ${modeText}`;
+      e.target.textContent = `Modo: ${modeText}`;
     }
 
     createBoard();
