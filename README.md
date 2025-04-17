@@ -1,4 +1,4 @@
-```markdown
+
 # Bug vs Fix 🐞
 
 **Bug vs Fix** é uma versão estilizada do clássico jogo da velha.
